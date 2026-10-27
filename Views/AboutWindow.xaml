@@ -1,0 +1,176 @@
+<Window x:Class="BookHub.Reader.Views.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{DynamicResource Loc_AboutWindowTitle}"
+        Width="760" Height="640"
+        MinWidth="660" MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BgPrimaryBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+            <Border Background="{DynamicResource AccentBrush}" Width="52" Height="52" CornerRadius="12" Margin="0,0,16,0">
+                <TextBlock Text="📖" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FFFFFF" />
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="AllReaderBook (Public Beta)"
+                               FontSize="22"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                    <Border Background="{DynamicResource AccentBrush}"
+                            CornerRadius="6"
+                            Padding="10,2"
+                            Margin="10,0,0,0"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="v0.9.0-beta"
+                                   FontSize="12"
+                                   FontWeight="Bold"
+                                   Foreground="#FFFFFF" />
+                    </Border>
+                </StackPanel>
+                <TextBlock Text="{DynamicResource Loc_AboutDescription}"
+                           FontSize="13"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextWrapping="Wrap"
+                           Margin="0,4,0,0" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Row 1: Developer Information Card -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource BgSecondaryBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="16,12"
+                Margin="0,0,0,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="{DynamicResource Loc_AboutAuthorLabel}"
+                           FontSize="12.5"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,0,14,6" />
+                <TextBlock Grid.Row="0" Grid.Column="1"
+                           Text="Roman Myrovych"
+                           FontSize="13"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Margin="0,0,0,6" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0"
+                           Text="{DynamicResource Loc_AboutEmailLabel}"
+                           FontSize="12.5"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,0,14,6" />
+                <TextBlock Grid.Row="1" Grid.Column="1"
+                           FontSize="12.5"
+                           Margin="0,0,0,6">
+                    <Hyperlink NavigateUri="mailto:myrovych.roman@ukr.net"
+                               Foreground="{DynamicResource AccentBrush}"
+                               RequestNavigate="Hyperlink_RequestNavigate">
+                        <Run Text="myrovych.roman@ukr.net" />
+                    </Hyperlink>
+                </TextBlock>
+
+                <TextBlock Grid.Row="2" Grid.Column="0"
+                           Text="{DynamicResource Loc_AboutRepoLabel}"
+                           FontSize="12.5"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,0,14,0" />
+                <TextBlock Grid.Row="2" Grid.Column="1"
+                           FontSize="12.5">
+                    <Hyperlink NavigateUri="https://github.com/RomanMyrovych/AllReaderBook"
+                               Foreground="{DynamicResource AccentBrush}"
+                               RequestNavigate="Hyperlink_RequestNavigate">
+                        <Run Text="https://github.com/RomanMyrovych/AllReaderBook" />
+                    </Hyperlink>
+                </TextBlock>
+            </Grid>
+        </Border>
+
+        <!-- Row 2: Legal & Documentation Buttons -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,10">
+            <TextBlock Text="{DynamicResource Loc_AboutLegalHeader}"
+                       FontSize="12.5"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Margin="0,0,0,8" />
+            <WrapPanel Orientation="Horizontal">
+                <Button x:Name="ShowMitLicenseButton"
+                        Style="{StaticResource ModernButtonStyle}"
+                        Content="Ліцензія MIT"
+                        Padding="14,6"
+                        Margin="0,0,8,4"
+                        Click="ShowMitLicenseButton_Click" />
+                <Button x:Name="ShowThirdPartyButton"
+                        Style="{StaticResource ModernButtonStyle}"
+                        Content="Сторонні компоненти (Third-Party Licenses)"
+                        Padding="14,6"
+                        Margin="0,0,8,4"
+                        Click="ShowThirdPartyButton_Click" />
+                <Button x:Name="ShowPrivacyButton"
+                        Style="{StaticResource ModernButtonStyle}"
+                        Content="Політика конфіденційності (Privacy)"
+                        Padding="14,6"
+                        Margin="0,0,0,4"
+                        Click="ShowPrivacyButton_Click" />
+            </WrapPanel>
+        </StackPanel>
+
+        <!-- Row 3: Document Content Viewer -->
+        <Border Grid.Row="3"
+                Background="{DynamicResource BgSecondaryBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="12">
+            <TextBox x:Name="DocumentViewerTextBox"
+                     IsReadOnly="True"
+                     Background="Transparent"
+                     Foreground="{DynamicResource TextPrimaryBrush}"
+                     BorderThickness="0"
+                     FontFamily="Consolas, Segoe UI"
+                     FontSize="11.5"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Visible"
+                     HorizontalScrollBarVisibility="Disabled" />
+        </Border>
+
+        <!-- Row 4: Footer -->
+        <Grid Grid.Row="4" Margin="0,14,0,0">
+            <TextBlock Text="{DynamicResource Loc_AboutOfflineFooter}"
+                       VerticalAlignment="Center"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+            <Button Style="{StaticResource AccentButtonStyle}"
+                    Content="{DynamicResource Loc_CloseBtn}"
+                    MinWidth="120"
+                    Height="36"
+                    HorizontalAlignment="Right"
+                    Click="CloseButton_Click" />
+        </Grid>
+    </Grid>
+</Window>

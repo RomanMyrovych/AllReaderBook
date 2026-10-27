@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\BookHub.Core\BookHub.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\bookhub.ico" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <AssemblyName>AllReaderBook</AssemblyName>
+    <RootNamespace>BookHub.Reader</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>Assets\bookhub.ico</ApplicationIcon>
+    <Product>AllReaderBook</Product>
+    <Title>AllReaderBook</Title>
+    <AssemblyTitle>AllReaderBook</AssemblyTitle>
+    <Description>Ultra-fast lightweight document and book reader (PDF, EPUB, FB2, MOBI, DOCX, CBZ, DJVU)</Description>
+    <Company>AllReaderBook Open Source Project</Company>
+    <Authors>Roman Myrovych</Authors>
+    <Copyright>Copyright © 2026 Roman Myrovych</Copyright>
+    <Version>0.9.0</Version>
+    <AssemblyVersion>0.9.0.0</AssemblyVersion>
+    <FileVersion>0.9.0.0</FileVersion>
+    <InformationalVersion>0.9.0-beta</InformationalVersion>
+    <PackageProjectUrl>https://github.com/RomanMyrovych/AllReaderBook</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/RomanMyrovych/AllReaderBook</RepositoryUrl>
+    <TieredCompilation>true</TieredCompilation>
+    <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <TieredCompilation>true</TieredCompilation>
+    <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
+  </PropertyGroup>
+
+</Project>
