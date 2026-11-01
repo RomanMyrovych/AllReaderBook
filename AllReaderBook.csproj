@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\bookhub.ico" />
+    <Resource Include="AllReaderBook.ico" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -20,7 +20,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>Assets\bookhub.ico</ApplicationIcon>
+    <ApplicationIcon>AllReaderBook.ico</ApplicationIcon>
     <Product>AllReaderBook</Product>
     <Title>AllReaderBook</Title>
     <AssemblyTitle>AllReaderBook</AssemblyTitle>
@@ -28,10 +28,10 @@
     <Company>AllReaderBook Open Source Project</Company>
     <Authors>Roman Myrovych</Authors>
     <Copyright>Copyright © 2026 Roman Myrovych</Copyright>
-    <Version>0.9.0</Version>
-    <AssemblyVersion>0.9.0.0</AssemblyVersion>
-    <FileVersion>0.9.0.0</FileVersion>
-    <InformationalVersion>0.9.0-beta</InformationalVersion>
+    <Version>0.9.2</Version>
+    <AssemblyVersion>0.9.2.0</AssemblyVersion>
+    <FileVersion>0.9.2.0</FileVersion>
+    <InformationalVersion>0.9.02-beta</InformationalVersion>
     <PackageProjectUrl>https://github.com/RomanMyrovych/AllReaderBook</PackageProjectUrl>
     <RepositoryUrl>https://github.com/RomanMyrovych/AllReaderBook</RepositoryUrl>
     <TieredCompilation>true</TieredCompilation>

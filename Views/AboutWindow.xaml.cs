@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Navigation;
-using BookHub.Core.Data;
+using BookHub.Core.Services;
 
 namespace BookHub.Reader.Views;
 
@@ -38,7 +38,7 @@ public partial class AboutWindow : Window
         """;
 
     private const string FallbackPrivacyText = """
-        Політика приватності — AllReaderBook v0.9.0-beta (Public Beta)
+        Політика приватності — AllReaderBook v0.9.02-beta (Public Beta)
 
         1. Робота на 100% локально (Офлайн)
            AllReaderBook є повністю автономною настільною програмою. Програма не потребує підключення до Інтернету.
@@ -56,9 +56,9 @@ public partial class AboutWindow : Window
     public AboutWindow()
     {
         InitializeComponent();
-        _licensePath = LibraryDatabase.ResolveResourceFile("LICENSE");
-        _thirdPartyPath = LibraryDatabase.ResolveResourceFile("THIRD_PARTY_LICENSES.txt");
-        _privacyPath = LibraryDatabase.ResolveResourceFile("PRIVACY.md");
+        _licensePath = ReaderSettingsService.ResolveResourceFile("LICENSE");
+        _thirdPartyPath = ReaderSettingsService.ResolveResourceFile("THIRD_PARTY_LICENSES.txt");
+        _privacyPath = ReaderSettingsService.ResolveResourceFile("PRIVACY.md");
 
         ShowMitLicense();
     }
@@ -86,8 +86,7 @@ public partial class AboutWindow : Window
                 "1. PDFium (bblanchon.PDFium.Win32) — BSD 3-Clause License (Copyright 2014 The PDFium Authors / Google Inc.)\n" +
                 "2. VersOne.Epub — MIT License\n" +
                 "3. .NET Runtime, WPF & CommunityToolkit.Mvvm — MIT License (Copyright (c) .NET Foundation and Contributors)\n" +
-                "4. SQLite / Microsoft.Data.Sqlite — Public Domain / Apache License 2.0\n" +
-                "5. UI Fonts & Icons — SIL Open Font License 1.1 / MIT License";
+                "4. UI Fonts & Icons — SIL Open Font License 1.1 / MIT License";
         }
 
         DocumentViewerTextBox.ScrollToHome();

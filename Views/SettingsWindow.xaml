@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="clr-namespace:BookHub.Core.Models;assembly=BookHub.Core"
         Title="{DynamicResource Loc_SettingsWindowTitle}"
+        Icon="pack://application:,,,/AllReaderBook.ico"
         Width="700" Height="590"
         MinWidth="600" MinHeight="500"
         WindowStartupLocation="CenterOwner"
@@ -160,7 +161,7 @@
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Margin="0,2,0,8" />
 
-                    <ItemsControl ItemsSource="{Binding LightThemes}">
+                    <ItemsControl ItemsSource="{Binding LightThemes}" Margin="0,0,0,16">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <UniformGrid Columns="3" />
@@ -199,6 +200,38 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+
+                    <!-- Smart PDF & Session Restore Options -->
+                    <Border Background="{DynamicResource BgCardBrush}"
+                            BorderBrush="{DynamicResource BorderSubtleBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="14,12">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource Loc_SettingsBehaviorSectionTitle}"
+                                       FontSize="13.5"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Margin="0,0,0,8" />
+                            <CheckBox IsChecked="{Binding IsSmartPdfColorFilterEnabled, Mode=TwoWay}"
+                                      Foreground="{DynamicResource TextPrimaryBrush}"
+                                      Margin="0,0,0,8"
+                                      Cursor="Hand">
+                                <TextBlock Text="{DynamicResource Loc_SettingsSmartPdfCheck}"
+                                           TextWrapping="Wrap"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                            </CheckBox>
+                            <CheckBox IsChecked="{Binding RestorePreviousSessionOnStartup, Mode=TwoWay}"
+                                      Foreground="{DynamicResource TextPrimaryBrush}"
+                                      Cursor="Hand">
+                                <TextBlock Text="{DynamicResource Loc_SettingsRestoreSessionCheck}"
+                                           TextWrapping="Wrap"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                            </CheckBox>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
         </Border>

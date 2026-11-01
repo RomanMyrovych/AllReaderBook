@@ -87,9 +87,9 @@ public partial class ReaderMainWindow : Window
                 _viewModel.UpdateViewportDimensions(PrimaryViewportHost.ActualWidth, PrimaryViewportHost.ActualHeight);
             }
 
-            if (_initialRequest.HasFile)
+            await _viewModel.RestoreSessionAndOpenInitialAsync(_initialRequest);
+            if (_viewModel.HasOpenTabs)
             {
-                await _viewModel.OpenLaunchRequestAsync(_initialRequest);
                 EnsureActiveTabVisibleInStrip();
                 UpdateTabOverflowIndicators();
                 RestoreActiveTabScrollPosition();
@@ -671,6 +671,10 @@ public partial class ReaderMainWindow : Window
         try
         {
             _scrollDebounceTimer.Stop();
+            if (_viewModel.ActiveTab is { } activeTab)
+            {
+                CaptureTabScrollStateFromVisualTree(activeTab);
+            }
             _viewModel.ActiveTabSwitching -= OnActiveTabSwitching;
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             _viewModel.FocusViewportRequested -= FocusReadingViewport;
@@ -689,10 +693,14 @@ public partial class ReaderMainWindow : Window
     // 2. Миттєва навігація за змістом (TOC Click Fix)
     private async void TocItemRow_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (sender is FrameworkElement { DataContext: TocItem tocItem } &&
+        if (sender is FrameworkElement { DataContext: TocItem tocItem } el &&
             tocItem.PageNumber > 0 &&
             _viewModel.ActiveTab != null)
         {
+            if (FindVisualAncestor<TreeViewItem>(el) is { } treeViewItem)
+            {
+                treeViewItem.IsSelected = true;
+            }
             e.Handled = true;
             _lastTocNavigatedPage = tocItem.PageNumber;
             _lastTocNavigationTick = Environment.TickCount64;
@@ -1764,6 +1772,77 @@ public partial class ReaderMainWindow : Window
                 targetTextBox.Select(match.CharIndex, match.CharLength);
             }
         }
+    }
+
+    private void OpenFileDropDownButton_Click(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        PopulateRecentFilesDropDownMenu();
+        RecentFilesDropDownMenu.PlacementTarget = OpenFileSplitButtonContainer;
+        RecentFilesDropDownMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        RecentFilesDropDownMenu.IsOpen = true;
+    }
+
+    private void RecentFilesDropDownMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        PopulateRecentFilesDropDownMenu();
+    }
+
+    private void PopulateRecentFilesDropDownMenu()
+    {
+        if (RecentFilesDropDownMenu == null)
+            return;
+
+        _viewModel.ReloadRecentFilesList();
+        RecentFilesDropDownMenu.Items.Clear();
+
+        if (_viewModel.RecentFiles.Count == 0)
+        {
+            var emptyItem = new MenuItem
+            {
+                Header = ReaderLocalizationService.GetString("Loc_NoRecentFilesMenuItem"),
+                IsEnabled = false
+            };
+            RecentFilesDropDownMenu.Items.Add(emptyItem);
+            return;
+        }
+
+        foreach (RecentReaderFileEntry entry in _viewModel.RecentFiles)
+        {
+            bool exists = entry.FileExists;
+            var fileItem = new MenuItem
+            {
+                Header = entry.FileName,
+                ToolTip = entry.FilePath,
+                IsEnabled = exists,
+                Command = _viewModel.OpenRecentFileFromToolbarCommand,
+                CommandParameter = entry
+            };
+            ToolTipService.SetShowOnDisabled(fileItem, true);
+            fileItem.Click += (_, _) =>
+            {
+                if (_viewModel.ActiveTab is { } activeTab)
+                {
+                    CaptureTabScrollStateFromVisualTree(activeTab);
+                }
+            };
+            RecentFilesDropDownMenu.Items.Add(fileItem);
+        }
+
+        var separator = new Separator();
+        if (Application.Current?.TryFindResource("ThemedMenuSeparatorStyle") is Style sepStyle)
+        {
+            separator.Style = sepStyle;
+        }
+        RecentFilesDropDownMenu.Items.Add(separator);
+
+        var clearHistoryItem = new MenuItem
+        {
+            Header = ReaderLocalizationService.GetString("Loc_ClearHistoryBtn"),
+            Command = _viewModel.ClearRecentFilesCommand
+        };
+        clearHistoryItem.Click += (_, _) => FocusReadingViewport();
+        RecentFilesDropDownMenu.Items.Add(clearHistoryItem);
     }
 
     private void OpenSettingsWindowButton_Click(object sender, RoutedEventArgs e)

@@ -5,6 +5,7 @@
         xmlns:services="clr-namespace:BookHub.Core.Services;assembly=BookHub.Core"
         xmlns:vm="clr-namespace:BookHub.Reader.ViewModels"
         Title="{Binding ActiveTab.Book.Title, TargetNullValue='AllReaderBook — Надшвидкий автономний рідер (Public Beta)', FallbackValue='AllReaderBook — Надшвидкий автономний рідер (Public Beta)', StringFormat='{}{0} — AllReaderBook — Надшвидкий автономний рідер (Public Beta)'}"
+        Icon="pack://application:,,,/AllReaderBook.ico"
         Width="1360" Height="880"
         WindowStartupLocation="Manual"
         AllowDrop="True"
@@ -66,6 +67,7 @@
                                  ItemsSource="{Binding OpenTabs}"
                                  SelectedItem="{Binding ActiveTab, Mode=TwoWay}"
                                  Background="Transparent"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderThickness="0"
                                  Padding="0"
                                  Margin="0"
@@ -86,6 +88,7 @@
                                     <Setter Property="Margin" Value="0,0,5,0" />
                                     <Setter Property="BorderThickness" Value="0" />
                                     <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                     <Setter Property="Focusable" Value="True" />
                                     <Setter Property="FocusVisualStyle" Value="{x:Null}" />
                                     <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -93,7 +96,8 @@
                                     <Setter Property="Template">
                                         <Setter.Value>
                                             <ControlTemplate TargetType="ListBoxItem">
-                                                <ContentPresenter VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                                <ContentPresenter VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                                  TextElement.Foreground="{DynamicResource TextPrimaryBrush}" />
                                             </ControlTemplate>
                                         </Setter.Value>
                                     </Setter>
@@ -106,6 +110,7 @@
                                             Margin="0"
                                             Height="30"
                                             Cursor="Hand"
+                                            TextElement.Foreground="{DynamicResource TextPrimaryBrush}"
                                             MouseLeftButtonDown="TabItemBorder_MouseLeftButtonDown"
                                             Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}">
                                         <Border.Style>
@@ -118,7 +123,8 @@
                                                         <Setter Property="Background" Value="{DynamicResource BgCardHoverBrush}" />
                                                     </Trigger>
                                                     <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                                        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+                                                        <Setter Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}" />
                                                         <Setter Property="BorderThickness" Value="1.5" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
@@ -126,6 +132,10 @@
                                         </Border.Style>
                                         <Border.ContextMenu>
                                             <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                <MenuItem Header="{Binding PinMenuHeader}"
+                                                          Command="{Binding PlacementTarget.Tag.TogglePinTabCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                          CommandParameter="{Binding}" />
+                                                <Separator Style="{StaticResource ThemedMenuSeparatorStyle}" />
                                                 <MenuItem Header="{DynamicResource Loc_CloseThisTab}"
                                                           InputGestureText="Ctrl+W"
                                                           Command="{Binding PlacementTarget.Tag.CloseTabCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
@@ -138,21 +148,59 @@
                                             </ContextMenu>
                                         </Border.ContextMenu>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="📌"
+                                                       FontSize="11"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,0,5,0"
+                                                       Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                                <Setter Property="Foreground" Value="#FFFFFF" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                             <TextBlock Text="{Binding TabTitle}"
                                                        ToolTip="{Binding Book.FilePath}"
                                                        FontWeight="SemiBold"
                                                        FontSize="12"
                                                        VerticalAlignment="Center"
-                                                       Margin="0,0,7,0" />
+                                                       Margin="0,0,7,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                                <Setter Property="Foreground" Value="#FFFFFF" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                             <Button Content="×"
                                                     Width="20"
                                                     Height="24"
                                                     Padding="0"
                                                     FontSize="15"
                                                     VerticalAlignment="Center"
-                                                    Style="{StaticResource ModernButtonStyle}"
                                                     Command="{Binding DataContext.CloseTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    CommandParameter="{Binding}" />
+                                                    CommandParameter="{Binding}">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                                <Setter Property="Background" Value="#28000000" />
+                                                                <Setter Property="BorderBrush" Value="#40FFFFFF" />
+                                                                <Setter Property="Foreground" Value="#FFFFFF" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -182,21 +230,26 @@
                             Margin="4,0,0,0" />
                 </Grid>
 
-                <!-- Right: View Modes, Split-View, Settings & About -->
+                <!-- Right: View Modes Dropdown (Default: Continuous), Settings Icon & About -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Style="{StaticResource ModernButtonStyle}" Content="{DynamicResource Loc_ReaderSinglePage}" ToolTip="{DynamicResource Loc_ReaderSinglePageTooltip}" Command="{Binding SetViewModeCommand}" CommandParameter="SinglePage" Margin="0,0,4,0" Padding="7,2" Height="30" />
-                    <Button Style="{StaticResource ModernButtonStyle}" Content="{DynamicResource Loc_ReaderSpread}" ToolTip="{DynamicResource Loc_ReaderSpreadTooltip}" Command="{Binding SetViewModeCommand}" CommandParameter="TwoPageSpread" Margin="0,0,4,0" Padding="7,2" Height="30" />
-                    <Button Style="{StaticResource ModernButtonStyle}" Content="{DynamicResource Loc_ReaderContinuous}" ToolTip="{DynamicResource Loc_ReaderContinuousTooltip}" Command="{Binding SetViewModeCommand}" CommandParameter="ContinuousVertical" Margin="0,0,8,0" Padding="7,2" Height="30" />
-
-                    <Button Style="{StaticResource ModernButtonStyle}" Content="{DynamicResource Loc_ReaderSplitView}" ToolTip="{DynamicResource Loc_ReaderSplitViewTooltip}" Command="{Binding ToggleSplitViewCommand}" Margin="0,0,8,0" Padding="7,2" Height="30" />
+                    <ComboBox ItemsSource="{Binding ViewModePresets}"
+                              SelectedItem="{Binding SelectedViewModePreset, Mode=TwoWay}"
+                              DisplayMemberPath="Label"
+                              MinWidth="140"
+                              Height="30"
+                              Margin="0,0,6,0"
+                              VerticalAlignment="Center"
+                              ToolTip="{DynamicResource Loc_ReaderContinuousTooltip}" />
 
                     <Button Style="{StaticResource ModernButtonStyle}"
-                            Content="{DynamicResource Loc_ReaderSettingsBtn}"
+                            Content="⚙"
                             ToolTip="{DynamicResource Loc_ReaderSettingsTooltip}"
                             Click="OpenSettingsWindowButton_Click"
-                            Margin="0,0,4,0"
-                            Padding="8,2"
-                            Height="30" />
+                            Width="34"
+                            Height="30"
+                            Padding="0"
+                            FontSize="15"
+                            Margin="0,0,4,0" />
                     <Button Style="{StaticResource ModernButtonStyle}"
                             Content="{DynamicResource Loc_ReaderAboutBtn}"
                             ToolTip="{DynamicResource Loc_ReaderAboutTooltip}"
@@ -222,20 +275,14 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!-- Ліва зона (Auto): Панелі + Роздільник + Навігація сторінками + Масштаб -->
+                <!-- Ліва зона (Auto): Кнопка лівої панелі Змісту + Роздільник + Навігація сторінками + Масштаб -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Style="{StaticResource ModernButtonStyle}"
-                            Content="{DynamicResource Loc_ReaderTocBtn}"
-                            ToolTip="{DynamicResource Loc_ReaderTocTooltip}"
-                            Command="{Binding ToggleTocCommand}"
-                            Margin="0,0,5,0"
-                            Padding="10,4" />
-                    <Button Style="{StaticResource ModernButtonStyle}"
-                            Content="{DynamicResource Loc_ReaderNotesBtn}"
-                            ToolTip="{DynamicResource Loc_ReaderNotesTooltip}"
-                            Command="{Binding ToggleAnnotationsCommand}"
-                            Margin="0,0,2,0"
-                            Padding="10,4" />
+                    <ToggleButton Style="{StaticResource ModernToggleButtonStyle}"
+                                  Content="{DynamicResource Loc_ReaderTocBtn}"
+                                  IsChecked="{Binding IsTocVisible, Mode=TwoWay}"
+                                  ToolTip="{DynamicResource Loc_ReaderTocTooltip}"
+                                  Margin="0,0,2,0"
+                                  Padding="10,4" />
 
                     <Separator Margin="6,4" Width="1" Height="22" Background="{DynamicResource BorderSubtleBrush}">
                         <Separator.Template>
@@ -277,16 +324,16 @@
                     <Button Style="{StaticResource ModernButtonStyle}" Content="🔍+" Command="{Binding ZoomInCommand}" ToolTip="{DynamicResource Loc_ZoomInTooltip}" Margin="2,0,6,0" Padding="7,4" />
                 </StackPanel>
 
-                <!-- Центральна зона (*): Компактний блок внутрішнього пошуку по відкритому документу -->
+                <!-- Центральна зона (*): Поле пошуку по документу (займає весь вільний простір без накладання) -->
                 <Border Grid.Column="1"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Center"
-                        MaxWidth="450"
-                        MinWidth="210"
+                        MinWidth="80"
                         Height="34"
                         Margin="8,0"
                         Padding="8,2"
                         CornerRadius="6"
+                        ClipToBounds="True"
                         Background="{DynamicResource InputBackgroundBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
@@ -377,33 +424,106 @@
 
                 <!-- Права зона (Auto) -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Style="{StaticResource ModernButtonStyle}"
-                            Content="{DynamicResource Loc_OpenFileBtn}"
-                            ToolTip="{DynamicResource Loc_OpenFileTooltip}"
-                            Command="{Binding OpenAnotherFileInTabCommand}"
-                            Margin="4,0" />
+                    <!-- SplitButton «Відкрити ▼» (Діалог вибору файлу + Випадаюче меню останніх відкритих документів) -->
+                    <Border x:Name="OpenFileSplitButtonContainer"
+                            CornerRadius="6"
+                            Margin="4,0"
+                            SnapsToDevicePixels="True">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{DynamicResource BgCardBrush}" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}" />
+                                <Setter Property="BorderThickness" Value="1" />
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Border.ContextMenu>
+                            <ContextMenu x:Name="RecentFilesDropDownMenu"
+                                         Placement="Bottom"
+                                         Opened="RecentFilesDropDownMenu_Opened" />
+                        </Border.ContextMenu>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="1" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="OpenFileMainButton"
+                                    Grid.Column="0"
+                                    Style="{StaticResource SplitButtonMainPartStyle}"
+                                    Content="📂"
+                                    Padding="9,4"
+                                    FontSize="13.5"
+                                    ToolTip="{DynamicResource Loc_OpenFileTooltip}"
+                                    Command="{Binding OpenAnotherFileInTabCommand}" />
+                            <Border Grid.Column="1"
+                                    Width="1"
+                                    Margin="0,5"
+                                    Background="{DynamicResource BorderSubtleBrush}" />
+                            <Button x:Name="OpenFileDropDownButton"
+                                    Grid.Column="2"
+                                    Style="{StaticResource SplitButtonArrowPartStyle}"
+                                    Content="▼"
+                                    ToolTip="{DynamicResource Loc_OpenRecentDropdownTooltip}"
+                                    Click="OpenFileDropDownButton_Click" />
+                        </Grid>
+                    </Border>
+                    <ToggleButton Style="{StaticResource ModernToggleButtonStyle}"
+                                  Content="{DynamicResource Loc_SmartPdfFilterBtn}"
+                                  IsChecked="{Binding IsSmartPdfColorFilterEnabled, Mode=TwoWay}"
+                                  Visibility="{Binding ActiveTab.IsPdfMode, Converter={StaticResource BoolToVisibilityConverter}}"
+                                  ToolTip="{DynamicResource Loc_SmartPdfFilterTooltip}"
+                                  Margin="4,0" />
                     <ToggleButton Style="{StaticResource ModernToggleButtonStyle}"
                                   Content="{DynamicResource Loc_SelectionBtn}"
-                                  IsChecked="{Binding IsTextSelectionMode}"
+                                  IsChecked="{Binding IsTextSelectionMode, Mode=TwoWay}"
                                   IsEnabled="{Binding CanSelectText}"
                                   ToolTip="{Binding TextSelectionToolTip}"
                                   ToolTipService.ShowOnDisabled="True"
                                   Margin="4,0" />
                     <Button Style="{StaticResource ModernButtonStyle}"
-                            Content="{DynamicResource Loc_BookmarkBtn}"
+                            Width="34"
+                            Padding="0"
                             ToolTip="{DynamicResource Loc_BookmarkTooltip}"
                             Command="{Binding AddQuickBookmarkCommand}"
-                            Margin="4,0" />
+                            Margin="4,0">
+                        <Viewbox Width="16" Height="16" Stretch="Uniform">
+                            <Canvas Width="24" Height="24">
+                                <Path Data="M 5,5.5 C 5,3.57 6.57,2 8.5,2 L 15.5,2 C 17.43,2 19,3.57 19,5.5 L 19,19.8 C 19,21.1 17.5,21.85 16.45,21.05 L 12,17.6 L 7.55,21.05 C 6.5,21.85 5,21.1 5,19.8 Z M 12,6.5 L 12,12.5 M 9,9.5 L 15,9.5"
+                                      Stroke="{DynamicResource TextPrimaryBrush}"
+                                      StrokeThickness="2.1"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round" />
+                            </Canvas>
+                        </Viewbox>
+                    </Button>
                     <Button Style="{StaticResource ModernButtonStyle}"
-                            Content="{DynamicResource Loc_PrintBtn}"
+                            Content="🖨"
+                            Width="34"
+                            Padding="0"
+                            FontSize="14"
                             ToolTip="{DynamicResource Loc_PrintTooltip}"
                             Command="{Binding PrintCurrentPageCommand}"
                             Margin="4,0" />
                     <Button Style="{StaticResource ModernButtonStyle}"
-                            Content="⛶ F11"
+                            Content="⛶"
+                            Width="34"
+                            Padding="0"
+                            FontSize="14.5"
                             ToolTip="{DynamicResource Loc_FullScreenTooltip}"
                             Command="{Binding ToggleFullScreenCommand}"
                             Margin="4,0" />
+                    <ToggleButton Style="{StaticResource ModernToggleButtonStyle}"
+                                  Content="{DynamicResource Loc_ReaderNotesBtn}"
+                                  IsChecked="{Binding IsAnnotationsVisible, Mode=TwoWay}"
+                                  ToolTip="{DynamicResource Loc_ReaderNotesTooltip}"
+                                  Margin="4,0,0,0"
+                                  Padding="10,4" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -606,27 +726,147 @@
                         <TreeView.ItemContainerStyle>
                             <Style TargetType="TreeViewItem">
                                 <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                <Setter Property="Background" Value="Transparent" />
                                 <Setter Property="FontSize" Value="12.5" />
-                                <Setter Property="Padding" Value="4,4" />
+                                <Setter Property="Padding" Value="2,1" />
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
                                 <Setter Property="IsExpanded" Value="True" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="TreeViewItem">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" MinWidth="18" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition />
+                                                </Grid.RowDefinitions>
+                                                <ToggleButton x:Name="Expander"
+                                                              IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                                              ClickMode="Press"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center">
+                                                    <ToggleButton.Style>
+                                                        <Style TargetType="ToggleButton">
+                                                            <Setter Property="Focusable" Value="False" />
+                                                            <Setter Property="Width" Value="16" />
+                                                            <Setter Property="Height" Value="16" />
+                                                            <Setter Property="Template">
+                                                                <Setter.Value>
+                                                                    <ControlTemplate TargetType="ToggleButton">
+                                                                        <Border Background="Transparent" Width="16" Height="16">
+                                                                            <Path x:Name="ExpandPath"
+                                                                                  Fill="Transparent"
+                                                                                  Stroke="{DynamicResource TextSecondaryBrush}"
+                                                                                  StrokeThickness="1.5"
+                                                                                  Data="M 4,2 L 9,7 L 4,12"
+                                                                                  HorizontalAlignment="Center"
+                                                                                  VerticalAlignment="Center" />
+                                                                        </Border>
+                                                                        <ControlTemplate.Triggers>
+                                                                            <Trigger Property="IsChecked" Value="True">
+                                                                                <Setter TargetName="ExpandPath" Property="RenderTransform">
+                                                                                    <Setter.Value>
+                                                                                        <RotateTransform Angle="90" CenterX="6.5" CenterY="7" />
+                                                                                    </Setter.Value>
+                                                                                </Setter>
+                                                                            </Trigger>
+                                                                        </ControlTemplate.Triggers>
+                                                                    </ControlTemplate>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Style>
+                                                    </ToggleButton.Style>
+                                                </ToggleButton>
+                                                <Border x:Name="Bd"
+                                                        Grid.Column="1"
+                                                        Background="{TemplateBinding Background}"
+                                                        BorderBrush="Transparent"
+                                                        BorderThickness="0"
+                                                        Padding="4,2"
+                                                        CornerRadius="5">
+                                                    <ContentPresenter x:Name="PART_Header"
+                                                                      ContentSource="Header"
+                                                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                                                </Border>
+                                                <ItemsPresenter x:Name="ItemsHost"
+                                                                Grid.Row="1"
+                                                                Grid.Column="1" />
+                                            </Grid>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsExpanded" Value="False">
+                                                    <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed" />
+                                                </Trigger>
+                                                <Trigger Property="HasItems" Value="False">
+                                                    <Setter TargetName="Expander" Property="Visibility" Value="Hidden" />
+                                                </Trigger>
+                                                <Trigger SourceName="Bd" Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgCardHoverBrush}" />
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                                    <Setter Property="Foreground" Value="#FFFFFF" />
+                                                </Trigger>
+                                                <MultiTrigger>
+                                                    <MultiTrigger.Conditions>
+                                                        <Condition Property="IsSelected" Value="True" />
+                                                        <Condition Property="IsSelectionActive" Value="False" />
+                                                    </MultiTrigger.Conditions>
+                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                                    <Setter Property="Foreground" Value="#FFFFFF" />
+                                                </MultiTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
                             </Style>
                         </TreeView.ItemContainerStyle>
                         <TreeView.Resources>
                             <HierarchicalDataTemplate DataType="{x:Type models:TocItem}" ItemsSource="{Binding Children}">
-                                <Grid Margin="2"
-                                      Background="#01000000"
-                                      Cursor="Hand"
-                                      MouseLeftButtonUp="TocItemRow_MouseLeftButtonUp">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{Binding Title}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}" VerticalAlignment="Center" />
-                                    <Border Grid.Column="1" Background="{DynamicResource BgCardBrush}" CornerRadius="4" Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding PageNumber}" FontSize="11" Foreground="{DynamicResource AccentBrush}" />
-                                    </Border>
-                                </Grid>
+                                <Border x:Name="TocItemBorder"
+                                        Margin="0"
+                                        Padding="2,2"
+                                        CornerRadius="5"
+                                        Background="Transparent"
+                                        Cursor="Hand"
+                                        MouseLeftButtonUp="TocItemRow_MouseLeftButtonUp">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="TocTitleText"
+                                                   Grid.Column="0"
+                                                   Text="{Binding Title}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding Title}"
+                                                   VerticalAlignment="Center" />
+                                        <Border x:Name="TocPageBadge"
+                                                Grid.Column="1"
+                                                Background="{DynamicResource BgCardBrush}"
+                                                CornerRadius="4"
+                                                Padding="6,1"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center">
+                                            <TextBlock x:Name="TocPageText"
+                                                       Text="{Binding PageNumber}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource AccentBrush}" />
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                                <HierarchicalDataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
+                                        <Setter TargetName="TocTitleText" Property="Foreground" Value="#FFFFFF" />
+                                        <Setter TargetName="TocTitleText" Property="FontWeight" Value="SemiBold" />
+                                        <Setter TargetName="TocPageBadge" Property="Background" Value="#38000000" />
+                                        <Setter TargetName="TocPageText" Property="Foreground" Value="#FFFFFF" />
+                                    </DataTrigger>
+                                </HierarchicalDataTemplate.Triggers>
                             </HierarchicalDataTemplate>
                         </TreeView.Resources>
                     </TreeView>
@@ -698,6 +938,48 @@
                                                     CornerRadius="2"
                                                     Visibility="Collapsed" />
                                         </Canvas>
+                                        <!-- Sticky-Note Bookmark Overlay on Single Page -->
+                                        <Border HorizontalAlignment="Right"
+                                                VerticalAlignment="Top"
+                                                Margin="0,20,20,0"
+                                                Width="{Binding StickyBookmarkWidth}"
+                                                MinHeight="50"
+                                                CornerRadius="6"
+                                                Visibility="{Binding CurrentPageBookmark, Converter={StaticResource NullToVisibilityConverter}}"
+                                                BorderThickness="2"
+                                                BorderBrush="{Binding CurrentPageBookmark.StickyBorderColorHex}"
+                                                Background="{Binding CurrentPageBookmark.StickyBgColorHex}"
+                                                Padding="10,8"
+                                                ToolTip="Закладка на сторінці">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{Binding CurrentPageBookmark.QuoteText}"
+                                                           FontStyle="Italic"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="12"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                                           TextWrapping="Wrap"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           VerticalAlignment="Center" />
+                                                <Button Grid.Column="1"
+                                                        Content="✕"
+                                                        Command="{Binding DataContext.DeleteBookmarkCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding CurrentPageBookmark}"
+                                                        Style="{StaticResource ModernButtonStyle}"
+                                                        Padding="5,1"
+                                                        MinHeight="20"
+                                                        MinWidth="20"
+                                                        FontSize="10"
+                                                        VerticalAlignment="Top"
+                                                        Margin="6,0,0,0"
+                                                        Opacity="0.8"
+                                                        ToolTip="Видалити закладку" />
+                                            </Grid>
+                                        </Border>
                                     </Grid>
                                 </Border>
 
@@ -729,6 +1011,48 @@
                                                         CornerRadius="2"
                                                         Visibility="Collapsed" />
                                             </Canvas>
+                                            <!-- Sticky-Note Bookmark Overlay on Spread Left Page -->
+                                            <Border HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Margin="0,20,16,0"
+                                                    Width="{Binding StickySpreadBookmarkWidth}"
+                                                    MinHeight="50"
+                                                    CornerRadius="6"
+                                                    Visibility="{Binding CurrentPageBookmark, Converter={StaticResource NullToVisibilityConverter}}"
+                                                    BorderThickness="2"
+                                                    BorderBrush="{Binding CurrentPageBookmark.StickyBorderColorHex}"
+                                                    Background="{Binding CurrentPageBookmark.StickyBgColorHex}"
+                                                    Padding="10,8"
+                                                    ToolTip="Закладка на сторінці">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="{Binding CurrentPageBookmark.QuoteText}"
+                                                               FontStyle="Italic"
+                                                               FontWeight="SemiBold"
+                                                               FontSize="11.5"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                                               TextWrapping="Wrap"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center" />
+                                                    <Button Grid.Column="1"
+                                                            Content="✕"
+                                                            Command="{Binding DataContext.DeleteBookmarkCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding CurrentPageBookmark}"
+                                                            Style="{StaticResource ModernButtonStyle}"
+                                                            Padding="5,1"
+                                                            MinHeight="20"
+                                                            MinWidth="20"
+                                                            FontSize="10"
+                                                            VerticalAlignment="Top"
+                                                            Margin="6,0,0,0"
+                                                            Opacity="0.8"
+                                                            ToolTip="Видалити закладку" />
+                                                </Grid>
+                                            </Border>
                                         </Grid>
                                     </Border>
                                     <Border Background="{DynamicResource ReaderPageBgBrush}" CornerRadius="2">
@@ -750,6 +1074,48 @@
                                                         CornerRadius="2"
                                                         Visibility="Collapsed" />
                                             </Canvas>
+                                            <!-- Sticky-Note Bookmark Overlay on Spread Right Page -->
+                                            <Border HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Margin="0,20,16,0"
+                                                    Width="{Binding StickySpreadBookmarkWidth}"
+                                                    MinHeight="50"
+                                                    CornerRadius="6"
+                                                    Visibility="{Binding SecondSpreadPageBookmark, Converter={StaticResource NullToVisibilityConverter}}"
+                                                    BorderThickness="2"
+                                                    BorderBrush="{Binding SecondSpreadPageBookmark.StickyBorderColorHex}"
+                                                    Background="{Binding SecondSpreadPageBookmark.StickyBgColorHex}"
+                                                    Padding="10,8"
+                                                    ToolTip="Закладка на сторінці">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="{Binding SecondSpreadPageBookmark.QuoteText}"
+                                                               FontStyle="Italic"
+                                                               FontWeight="SemiBold"
+                                                               FontSize="11.5"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                                               TextWrapping="Wrap"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center" />
+                                                    <Button Grid.Column="1"
+                                                            Content="✕"
+                                                            Command="{Binding DataContext.DeleteBookmarkCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding SecondSpreadPageBookmark}"
+                                                            Style="{StaticResource ModernButtonStyle}"
+                                                            Padding="5,1"
+                                                            MinHeight="20"
+                                                            MinWidth="20"
+                                                            FontSize="10"
+                                                            VerticalAlignment="Top"
+                                                            Margin="6,0,0,0"
+                                                            Opacity="0.8"
+                                                            ToolTip="Видалити закладку" />
+                                                </Grid>
+                                            </Border>
                                         </Grid>
                                     </Border>
                                 </StackPanel>
@@ -1048,7 +1414,7 @@
                     <DockPanel>
                         <Border DockPanel.Dock="Top" Background="{DynamicResource BgSecondaryBrush}" Padding="10,6" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1">
                             <Grid>
-                                <TextBlock Text="{DynamicResource Loc_SplitViewHeader}" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" />
+                                <TextBlock Text="{DynamicResource Loc_SplitViewHeader}" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" />
                                 <ComboBox ItemsSource="{Binding OpenTabs}"
                                           SelectedItem="{Binding SecondarySplitTab}"
                                           DisplayMemberPath="TabTitle"
@@ -1214,9 +1580,9 @@
                 Visibility="{Binding HasOpenTabs, Converter={StaticResource BoolToVisibilityConverter}}">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0"
@@ -1224,13 +1590,14 @@
                            FontSize="12"
                            Foreground="{DynamicResource AccentBrush}"
                            FontWeight="SemiBold"
+                           HorizontalAlignment="Left"
                            VerticalAlignment="Center"
                            Margin="0,0,16,0" />
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <TextBlock Text="{DynamicResource Loc_FastScrubLabel}" FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
                     <Slider x:Name="PageSlider"
-                            Width="340"
+                            Width="320"
                             Minimum="1"
                             Maximum="{Binding ActiveTab.TotalPages}"
                             Value="{Binding ActiveTab.CurrentPage, Mode=OneWay}"
@@ -1239,16 +1606,17 @@
                             VerticalAlignment="Center"
                             PreviewMouseLeftButtonUp="PageSlider_PreviewMouseLeftButtonUp"
                             ValueChanged="PageSlider_ValueChanged" />
-                    <Border Background="{DynamicResource BgCardBrush}" CornerRadius="4" Padding="8,2" Margin="10,0,0,0">
+                    <Border Background="{DynamicResource BgCardBrush}" CornerRadius="4" Padding="8,2" Margin="10,0,0,0" MinWidth="68">
                         <TextBlock x:Name="SliderPreviewText"
                                    Text="{Binding ActiveTab.CurrentPage, StringFormat='Стор. {0}'}"
                                    FontSize="11.5"
                                    FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
                                    Foreground="{DynamicResource TextPrimaryBrush}" />
                     </Border>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <TextBlock Text="{Binding ActiveTab.MemoryStatusText}"
                                FontSize="11.5"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -1257,6 +1625,8 @@
                     <TextBlock Text="{Binding ActiveTab.ReadingProgressPercent, StringFormat='{}{0:0.0}%'}"
                                FontSize="12"
                                FontWeight="Bold"
+                               MinWidth="42"
+                               TextAlignment="Right"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center" />
                 </StackPanel>

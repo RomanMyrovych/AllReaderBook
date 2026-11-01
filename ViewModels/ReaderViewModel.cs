@@ -6,7 +6,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using BookHub.Core.Data;
 using BookHub.Core.Models;
 using BookHub.Core.Parsers;
 using BookHub.Core.Pdf;
@@ -19,6 +18,7 @@ using Microsoft.Win32;
 namespace BookHub.Reader.ViewModels;
 
 public sealed record ZoomPresetOption(string Key, string Label);
+public sealed record ViewModePresetOption(string Key, string Label);
 
 public partial class ContinuousPageViewModel : ObservableObject
 {
@@ -38,8 +38,6 @@ public partial class ContinuousPageViewModel : ObservableObject
 public partial class DocumentTabViewModel : ObservableObject, IDisposable
 {
     private readonly ReaderSettingsService _readerSettings;
-    private readonly long? _catalogBookId;
-    private readonly string? _catalogDbPath;
     private readonly PdfSurfacePool _surfacePool = new();
 
     private PdfDocumentSession? _pdfSession;
@@ -63,11 +61,19 @@ public partial class DocumentTabViewModel : ObservableObject, IDisposable
     public event Action<int, double>? PriorityScrollRequested;
 
     public BookRecord Book { get; }
-    public long? CatalogBookId => _catalogBookId;
-    public string? CatalogDbPath => _catalogDbPath;
-    public bool IsCatalogLinked => _catalogBookId is > 0 && !string.IsNullOrWhiteSpace(_catalogDbPath);
 
     public string TabTitle => Book.Title.Length > 28 ? Book.Title[..25] + "..." : Book.Title;
+
+    [ObservableProperty] private bool _isPinned;
+
+    public string PinMenuHeader => IsPinned
+        ? ReaderLocalizationService.GetString("Loc_UnpinTab")
+        : ReaderLocalizationService.GetString("Loc_PinTab");
+
+    partial void OnIsPinnedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(PinMenuHeader));
+    }
 
     public const string MissingTextLayerToolTip = "У цьому документі відсутній текстовий шар (лише зображення). Посимвольне виділення недоступне";
     public const string DefaultTextSelectionToolTip = "Режим виділення тексту";
@@ -85,6 +91,7 @@ public partial class DocumentTabViewModel : ObservableObject, IDisposable
     {
         OnPropertyChanged(nameof(TextSelectionToolTip));
         OnPropertyChanged(nameof(ZoomPercentDisplay));
+        OnPropertyChanged(nameof(PinMenuHeader));
     }
 
     partial void OnHasTextLayerChanged(bool value)
@@ -131,6 +138,19 @@ public partial class DocumentTabViewModel : ObservableObject, IDisposable
     public ObservableCollection<AnnotationRecord> Annotations { get; } = [];
     public ObservableCollection<ContinuousPageViewModel> ContinuousWindowPages { get; } = [];
 
+    public AnnotationRecord? CurrentPageBookmark => Annotations.FirstOrDefault(a => a.IsBookmark && a.PageNumber == CurrentPage);
+    public AnnotationRecord? SecondSpreadPageBookmark => CurrentPage + 1 <= TotalPages ? Annotations.FirstOrDefault(a => a.IsBookmark && a.PageNumber == CurrentPage + 1) : null;
+    public double StickyBookmarkWidth => Math.Max(160, ComputedPageDisplayWidth * 0.30);
+    public double StickySpreadBookmarkWidth => Math.Max(140, ComputedSpreadPageDisplayWidth * 0.30);
+
+    public void NotifyBookmarkChanged()
+    {
+        OnPropertyChanged(nameof(CurrentPageBookmark));
+        OnPropertyChanged(nameof(SecondSpreadPageBookmark));
+        OnPropertyChanged(nameof(StickyBookmarkWidth));
+        OnPropertyChanged(nameof(StickySpreadBookmarkWidth));
+    }
+
     public string LoadingStatusCaption
     {
         get
@@ -158,18 +178,20 @@ public partial class DocumentTabViewModel : ObservableObject, IDisposable
     public bool IsBackgroundUnloaded => _isBackgroundUnloaded;
     public bool IsResumingFromBackground => _isResumingFromBackground;
 
+    public void MarkForLazySessionRestore()
+    {
+        _isBackgroundUnloaded = true;
+        IsLoading = false;
+    }
+
     public DocumentTabViewModel(
         BookRecord book,
         ReaderSettingsService readerSettings,
         string initialZoomMode = "FitWidth",
-        ReaderViewMode initialViewMode = ReaderViewMode.ContinuousVertical,
-        long? catalogBookId = null,
-        string? catalogDbPath = null)
+        ReaderViewMode initialViewMode = ReaderViewMode.ContinuousVertical)
     {
         Book = book;
         _readerSettings = readerSettings;
-        _catalogBookId = catalogBookId ?? (book.Id > 0 ? book.Id : null);
-        _catalogDbPath = catalogDbPath;
         _viewMode = initialViewMode;
         bool isPdf = string.Equals(book.Extension, ".pdf", StringComparison.OrdinalIgnoreCase);
         _isPdfMode = isPdf;
@@ -487,30 +509,33 @@ public partial class DocumentTabViewModel : ObservableObject, IDisposable
 
     private async Task LoadAnnotationsAsync(int lifecycleVersion)
     {
-        Annotations.Clear();
-        if (IsCatalogLinked && File.Exists(_catalogDbPath))
-        {
-            try
-            {
-                var db = new LibraryDatabase(_catalogDbPath);
-                var dbAnns = await db.GetAnnotationsForBookAsync(_catalogBookId!.Value);
-                if (lifecycleVersion != Volatile.Read(ref _lifecycleVersion))
-                    return;
-                foreach (var a in dbAnns) Annotations.Add(a);
-                return;
-            }
-            catch
-            {
-                // Fallback to reader_settings.json
-            }
-        }
+        await Task.CompletedTask;
+        if (lifecycleVersion != Volatile.Read(ref _lifecycleVersion))
+            return;
 
+        Annotations.Clear();
         var recent = _readerSettings.GetRecentEntry(Book.FilePath);
         if (recent?.LocalAnnotations != null)
         {
             foreach (var a in recent.LocalAnnotations)
                 Annotations.Add(a);
         }
+        NotifyBookmarkChanged();
+    }
+
+    partial void OnCurrentPageChanged(int value)
+    {
+        NotifyBookmarkChanged();
+    }
+
+    partial void OnComputedPageDisplayWidthChanged(double value)
+    {
+        OnPropertyChanged(nameof(StickyBookmarkWidth));
+    }
+
+    partial void OnComputedSpreadPageDisplayWidthChanged(double value)
+    {
+        OnPropertyChanged(nameof(StickySpreadBookmarkWidth));
     }
 
     partial void OnViewModeChanged(ReaderViewMode value)
@@ -779,7 +804,7 @@ public partial class DocumentTabViewModel : ObservableObject, IDisposable
                 await RenderPageIntoPoolAsync(page, lowResWidth, bgArgb, lowResPreview: true, bufferFirst, bufferLast, lowResCt, gen);
             }
 
-            MemoryStatusText = $"⚡ Low-Res скрол: стор. {first}–{last} / {TotalPages} | Пул: {_surfacePool.ActiveSurfaceCount}/{PdfSurfacePool.MaxSurfaces}";
+            MemoryStatusText = $"🎯 High-Res: стор. {bufferFirst}–{bufferLast} / {TotalPages} | Пул: {_surfacePool.ActiveSurfaceCount}/{PdfSurfacePool.MaxSurfaces}";
             ScheduleHighResUpgradeAfterScrollIdle(bufferFirst, bufferLast);
         }
         else
@@ -890,12 +915,26 @@ public partial class DocumentTabViewModel : ObservableObject, IDisposable
 
         try
         {
+            var theme = ReaderThemeService.CurrentTheme;
+            bool smartFilter = _readerSettings.Current.IsSmartPdfColorFilterEnabled;
+            uint effectiveBgArgb = smartFilter ? theme.PageBgArgb : bgArgb;
+            uint effectiveTextArgb = theme.PageTextArgb;
+            bool isDarkTheme = !theme.IsLight;
+
             var rendered = await Task.Run<(BitmapSource? Bitmap, int Width, int Height)>(() =>
             {
                 if (ct.IsCancellationRequested || expectedGeneration != Volatile.Read(ref _renderGeneration))
                     return (null, 0, 0);
 
-                using var pooledBuf = _pdfSession.RenderPagePooledBgra(pageNumber, ZoomLevel, targetWidthPx, bgArgb, lowResPreview);
+                using var pooledBuf = _pdfSession.RenderPagePooledBgra(
+                    pageNumber,
+                    ZoomLevel,
+                    targetWidthPx,
+                    effectiveBgArgb,
+                    lowResPreview,
+                    effectiveTextArgb,
+                    smartFilter,
+                    isDarkTheme);
                 if (ct.IsCancellationRequested || expectedGeneration != Volatile.Read(ref _renderGeneration))
                     return (null, 0, 0);
 
@@ -1278,27 +1317,14 @@ public partial class DocumentTabViewModel : ObservableObject, IDisposable
         await RefreshActiveViewAsync();
     }
 
-    public async Task SaveProgressAsync()
+    public Task SaveProgressAsync()
     {
         if (!BookFormatParser.IsReaderExtensionSupported(Book.FilePath, out _))
-            return;
+            return Task.CompletedTask;
 
         UpdateProgressMetrics(scheduleBackgroundSave: false);
-
         _readerSettings.UpsertRecentFile(Book, Annotations);
-
-        if (IsCatalogLinked && File.Exists(_catalogDbPath))
-        {
-            try
-            {
-                var db = new LibraryDatabase(_catalogDbPath);
-                await db.UpdateReadingProgressAsync(_catalogBookId!.Value, CurrentPage, TotalPages);
-            }
-            catch
-            {
-                // Ignore transient DB lock
-            }
-        }
+        return Task.CompletedTask;
     }
 
     public void Dispose()
@@ -1345,6 +1371,7 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
     public bool HasRecentFiles => RecentFiles.Count > 0;
 
     [ObservableProperty] private IReadOnlyList<ZoomPresetOption> _zoomPresets = BuildZoomPresets();
+    [ObservableProperty] private IReadOnlyList<ViewModePresetOption> _viewModePresets = BuildViewModePresets();
 
     private static IReadOnlyList<ZoomPresetOption> BuildZoomPresets() =>
     [
@@ -1358,9 +1385,18 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
         new("200%", "200%")
     ];
 
+    private static IReadOnlyList<ViewModePresetOption> BuildViewModePresets() =>
+    [
+        new("ContinuousVertical", ReaderLocalizationService.GetString("Loc_ReaderContinuous")),
+        new("SinglePage", ReaderLocalizationService.GetString("Loc_ReaderSinglePage")),
+        new("TwoPageSpread", ReaderLocalizationService.GetString("Loc_ReaderSpread")),
+        new("SplitView", ReaderLocalizationService.GetString("Loc_ReaderSplitView"))
+    ];
+
     [ObservableProperty] private DocumentTabViewModel? _activeTab;
     [ObservableProperty] private DocumentTabViewModel? _secondarySplitTab;
     [ObservableProperty] private ZoomPresetOption _selectedZoomPreset;
+    [ObservableProperty] private ViewModePresetOption _selectedViewModePreset;
     [ObservableProperty] private bool _isSplitViewEnabled;
     [ObservableProperty] private bool _isFullScreen;
     [ObservableProperty] private bool _isTocVisible = true;
@@ -1382,6 +1418,24 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
     public string SearchBoxToolTip => CanSelectText
         ? ReaderLocalizationService.GetString("Loc_SearchBoxTooltipEnabled")
         : ReaderLocalizationService.GetString("Loc_SelectionTooltipDisabled");
+
+    partial void OnIsTocVisibleChanged(bool value)
+    {
+        if (!IsFullScreen)
+        {
+            _settingsService.Current.IsTocVisible = value;
+            _settingsService.Save();
+        }
+    }
+
+    partial void OnIsAnnotationsVisibleChanged(bool value)
+    {
+        if (!IsFullScreen)
+        {
+            _settingsService.Current.IsAnnotationsVisible = value;
+            _settingsService.Save();
+        }
+    }
 
     partial void OnIsTextSelectionModeChanged(bool value)
     {
@@ -1609,6 +1663,8 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string _selectedHighlightColor = "#FACC15";
     [ObservableProperty] private string _selectedThemeName;
     [ObservableProperty] private ReaderLanguageOption _selectedLanguageOption;
+    [ObservableProperty] private bool _isSmartPdfColorFilterEnabled = true;
+    [ObservableProperty] private bool _restorePreviousSessionOnStartup = true;
 
     public IReadOnlyList<ReaderLanguageOption> SupportedLanguages { get; } = ReaderLocalizationService.SupportedLanguages;
     public IReadOnlyList<string> ThemeNames { get; } = ReaderThemeService.Presets.Select(p => p.Name).ToList();
@@ -1620,6 +1676,8 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
     {
         _settingsService = settingsService;
         _selectedThemeName = _settingsService.Current.ThemeName;
+        _isSmartPdfColorFilterEnabled = _settingsService.Current.IsSmartPdfColorFilterEnabled;
+        _restorePreviousSessionOnStartup = _settingsService.Current.RestorePreviousSessionOnStartup;
         string normalizedLang = ReaderLocalizationService.NormalizeLanguageCode(_settingsService.Current.Language);
         _selectedLanguageOption = SupportedLanguages.FirstOrDefault(l => l.Code.Equals(normalizedLang, StringComparison.OrdinalIgnoreCase))
                                   ?? SupportedLanguages[0];
@@ -1632,14 +1690,28 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
 
         _selectedZoomPreset = ZoomPresets.FirstOrDefault(z => z.Key.Equals(savedZoomMode, StringComparison.OrdinalIgnoreCase))
                               ?? ZoomPresets[0];
+        _selectedViewModePreset = ViewModePresets[0]; // За замовчуванням активний "Безперервний" (ContinuousVertical)
 
         ReaderThemeService.ThemeChanged += OnGlobalThemeChanged;
         ReaderLocalizationService.LanguageChanged += OnGlobalLanguageChanged;
+        _settingsService.RecentFilesChanged += OnSettingsRecentFilesChanged;
         OpenTabs.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasOpenTabs));
             OnPropertyChanged(nameof(IsStartScreenVisible));
         };
+
+        ReloadRecentFilesList();
+    }
+
+    private void OnSettingsRecentFilesChanged()
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess())
+        {
+            dispatcher.BeginInvoke(ReloadRecentFilesList);
+            return;
+        }
 
         ReloadRecentFilesList();
     }
@@ -1775,6 +1847,16 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
             _selectedZoomPreset = match;
             OnPropertyChanged(nameof(SelectedZoomPreset));
         }
+
+        if (!IsSplitViewEnabled)
+        {
+            string modeKey = value.ViewMode.ToString();
+            var viewMatch = ViewModePresets.FirstOrDefault(v => v.Key.Equals(modeKey, StringComparison.OrdinalIgnoreCase));
+            if (viewMatch != null && viewMatch != SelectedViewModePreset)
+            {
+                SyncSelectedViewModePreset(viewMatch);
+            }
+        }
     }
 
     partial void OnActiveTabChanging(DocumentTabViewModel? oldValue, DocumentTabViewModel? newValue)
@@ -1806,6 +1888,46 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
         }
     }
 
+    private bool _isSyncingViewModePreset;
+
+    private void SyncSelectedViewModePreset(ViewModePresetOption preset)
+    {
+        if (ReferenceEquals(SelectedViewModePreset, preset))
+            return;
+
+        _isSyncingViewModePreset = true;
+        try
+        {
+            SelectedViewModePreset = preset;
+        }
+        finally
+        {
+            _isSyncingViewModePreset = false;
+        }
+    }
+
+    partial void OnSelectedViewModePresetChanged(ViewModePresetOption value)
+    {
+        if (value == null || _isSyncingViewModePreset) return;
+
+        if (value.Key.Equals("SplitView", StringComparison.OrdinalIgnoreCase))
+        {
+            IsSplitViewEnabled = true;
+            if (SecondarySplitTab == null)
+            {
+                SecondarySplitTab = OpenTabs.LastOrDefault() ?? ActiveTab;
+            }
+            return;
+        }
+
+        if (IsSplitViewEnabled)
+        {
+            IsSplitViewEnabled = false;
+        }
+
+        SetViewMode(value.Key);
+    }
+
     public void UpdateViewportDimensions(double width, double height)
     {
         if (width <= 80 || height <= 80) return;
@@ -1829,6 +1951,13 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
         ZoomPresets = BuildZoomPresets();
         SelectedZoomPreset = ZoomPresets.FirstOrDefault(z => z.Key.Equals(currentZoomKey, StringComparison.OrdinalIgnoreCase))
                              ?? ZoomPresets[0];
+
+        string currentViewKey = SelectedViewModePreset?.Key ?? "ContinuousVertical";
+        ViewModePresets = BuildViewModePresets();
+        SyncSelectedViewModePreset(
+            ViewModePresets.FirstOrDefault(v => v.Key.Equals(currentViewKey, StringComparison.OrdinalIgnoreCase))
+            ?? ViewModePresets[0]);
+
         OnPropertyChanged(nameof(TextSelectionToolTip));
         OnPropertyChanged(nameof(SearchBoxToolTip));
 
@@ -1856,6 +1985,153 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
             _settingsService.Current.ThemeName = value;
             _settingsService.Save();
         }
+    }
+
+    partial void OnIsSmartPdfColorFilterEnabledChanged(bool value)
+    {
+        _settingsService.Current.IsSmartPdfColorFilterEnabled = value;
+        _settingsService.Save();
+        if (ActiveTab != null)
+        {
+            _ = ActiveTab.ClearCacheAndReloadThemeAsync();
+        }
+    }
+
+    partial void OnRestorePreviousSessionOnStartupChanged(bool value)
+    {
+        _settingsService.Current.RestorePreviousSessionOnStartup = value;
+        SaveSessionState();
+    }
+
+    [RelayCommand]
+    private void ToggleSmartPdfColorFilter()
+    {
+        IsSmartPdfColorFilterEnabled = !IsSmartPdfColorFilterEnabled;
+    }
+
+    public void SaveSessionState()
+    {
+        var sessionList = new List<ReaderSessionTabEntry>(OpenTabs.Count);
+        foreach (var tab in OpenTabs)
+        {
+            if (string.IsNullOrWhiteSpace(tab.Book.FilePath))
+                continue;
+
+            sessionList.Add(new ReaderSessionTabEntry
+            {
+                FilePath = tab.Book.FilePath,
+                CurrentPage = Math.Max(1, tab.CurrentPage),
+                SavedScrollOffset = tab.SavedScrollOffset,
+                SavedPageRelativeOffset = tab.SavedPageRelativeOffset,
+                ZoomMode = string.IsNullOrWhiteSpace(tab.ZoomMode) ? "FitWidth" : tab.ZoomMode,
+                ViewMode = tab.ViewMode.ToString(),
+                IsPinned = tab.IsPinned
+            });
+        }
+
+        _settingsService.Current.OpenSessionTabs = sessionList;
+        _settingsService.Current.ActiveSessionFilePath = ActiveTab?.Book.FilePath ?? string.Empty;
+        _settingsService.Save();
+    }
+
+    public async Task RestoreSessionAndOpenInitialAsync(ReaderLaunchRequest initialRequest)
+    {
+        DocumentTabViewModel? preferredActiveTab = null;
+
+        if (_settingsService.Current.RestorePreviousSessionOnStartup &&
+            _settingsService.Current.OpenSessionTabs is { Count: > 0 } savedTabs)
+        {
+            string savedActivePath = _settingsService.Current.ActiveSessionFilePath ?? string.Empty;
+            var orderedSavedTabs = savedTabs
+                .OrderByDescending(t => t.IsPinned)
+                .Take(MaximumOpenTabs)
+                .ToList();
+
+            foreach (var savedTab in orderedSavedTabs)
+            {
+                if (string.IsNullOrWhiteSpace(savedTab.FilePath))
+                    continue;
+
+                string fullPath;
+                try
+                {
+                    fullPath = Path.GetFullPath(savedTab.FilePath);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                if (!File.Exists(fullPath) ||
+                    !BookFormatParser.IsReaderExtensionSupported(fullPath, out _) ||
+                    !BookFormatParser.ValidateReaderFileSignature(fullPath, out _))
+                {
+                    continue;
+                }
+
+                if (OpenTabs.Any(t => string.Equals(Path.GetFullPath(t.Book.FilePath), fullPath, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                var recent = _settingsService.GetRecentEntry(fullPath);
+                int startPage = savedTab.CurrentPage > 0 ? savedTab.CurrentPage : (recent?.CurrentPage ?? 1);
+                var book = BookFormatParser.CreateStandaloneBookRecord(fullPath, 0, startPage);
+                if (recent != null)
+                {
+                    book.Title = recent.Title;
+                    book.Author = recent.Author;
+                    book.PageCount = Math.Max(1, recent.TotalPages);
+                    book.ReadingProgress = recent.ReadingProgress;
+                }
+
+                ReaderViewMode parsedViewMode = savedTab.ViewMode switch
+                {
+                    "SinglePage" => ReaderViewMode.SinglePage,
+                    "TwoPageSpread" => ReaderViewMode.TwoPageSpread,
+                    _ => ReaderViewMode.ContinuousVertical
+                };
+
+                var tabVm = new DocumentTabViewModel(
+                    book,
+                    _settingsService,
+                    initialZoomMode: string.IsNullOrWhiteSpace(savedTab.ZoomMode) ? "FitWidth" : savedTab.ZoomMode,
+                    initialViewMode: parsedViewMode)
+                {
+                    IsPinned = savedTab.IsPinned
+                };
+
+                tabVm.UpdateViewportSize(_lastKnownViewportWidth, _lastKnownViewportHeight);
+                if (savedTab.SavedScrollOffset > 0)
+                    tabVm.SavedScrollOffset = savedTab.SavedScrollOffset;
+                if (savedTab.SavedPageRelativeOffset > 0)
+                    tabVm.SavedPageRelativeOffset = savedTab.SavedPageRelativeOffset;
+
+                // Mark lazy background tabs so they consume 0 MB PDFium RAM and 0 ms startup time until clicked
+                tabVm.MarkForLazySessionRestore();
+                OpenTabs.Add(tabVm);
+
+                if (!string.IsNullOrWhiteSpace(savedActivePath) &&
+                    string.Equals(fullPath, Path.GetFullPath(savedActivePath), StringComparison.OrdinalIgnoreCase))
+                {
+                    preferredActiveTab = tabVm;
+                }
+            }
+        }
+
+        if (initialRequest.HasFile)
+        {
+            await OpenLaunchRequestAsync(initialRequest);
+        }
+        else if (OpenTabs.Count > 0)
+        {
+            var targetActive = preferredActiveTab ?? OpenTabs[0];
+            ActiveTab = targetActive;
+            SecondarySplitTab = targetActive;
+            await targetActive.ResumeFromBackgroundAsync();
+        }
+
+        SaveSessionState();
     }
 
     [RelayCommand]
@@ -1918,10 +2194,17 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
         if (existingTab != null)
         {
             ActiveTab = existingTab;
+            if (existingTab.IsBackgroundUnloaded)
+            {
+                await existingTab.ResumeFromBackgroundAsync();
+            }
             if (request.InitialPage is > 0)
             {
                 await existingTab.NavigateToPagePriorityAsync(request.InitialPage.Value);
             }
+            _settingsService.UpsertRecentFile(existingTab.Book, existingTab.Annotations);
+            ReloadRecentFilesList();
+            SaveSessionState();
             return;
         }
 
@@ -1932,44 +2215,18 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
             return;
         }
 
-        BookRecord? book = null;
-        string? dbPath = request.DbPath;
-        long? bookId = request.BookId;
-
-        if (!string.IsNullOrWhiteSpace(dbPath) && File.Exists(dbPath))
+        var recent = _settingsService.GetRecentEntry(fullPath);
+        int startPage = request.InitialPage ?? recent?.CurrentPage ?? 1;
+        BookRecord book = BookFormatParser.CreateStandaloneBookRecord(fullPath, 0, startPage);
+        if (recent != null)
         {
-            try
-            {
-                var db = new LibraryDatabase(dbPath);
-                if (bookId is > 0)
-                {
-                    book = await db.GetBookByIdAsync(bookId.Value);
-                }
-                book ??= await db.GetBookByPathAsync(fullPath);
-                if (book != null)
-                {
-                    bookId = book.Id;
-                }
-            }
-            catch
-            {
-            }
+            book.Title = recent.Title;
+            book.Author = recent.Author;
+            book.PageCount = Math.Max(1, recent.TotalPages);
+            book.ReadingProgress = recent.ReadingProgress;
         }
 
-        if (book == null)
-        {
-            var recent = _settingsService.GetRecentEntry(fullPath);
-            int startPage = request.InitialPage ?? recent?.CurrentPage ?? 1;
-            book = BookFormatParser.CreateStandaloneBookRecord(fullPath, bookId ?? 0, startPage);
-            if (recent != null)
-            {
-                book.Title = recent.Title;
-                book.Author = recent.Author;
-                book.PageCount = Math.Max(1, recent.TotalPages);
-                book.ReadingProgress = recent.ReadingProgress;
-            }
-        }
-        else if (request.InitialPage is > 0)
+        if (request.InitialPage is > 0)
         {
             book.CurrentPage = request.InitialPage.Value;
         }
@@ -1978,9 +2235,7 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
             book,
             _settingsService,
             initialZoomMode: "FitWidth",
-            initialViewMode: ReaderViewMode.ContinuousVertical,
-            catalogBookId: bookId,
-            catalogDbPath: dbPath);
+            initialViewMode: ReaderViewMode.ContinuousVertical);
 
         newTab.UpdateViewportSize(_lastKnownViewportWidth, _lastKnownViewportHeight);
         OpenTabs.Add(newTab);
@@ -1990,6 +2245,7 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
 
         await newTab.InitializeDocumentAsync();
         ReloadRecentFilesList();
+        SaveSessionState();
     }
 
     public async Task OpenFilesFromDropAsync(IEnumerable<string> paths)
@@ -2062,6 +2318,163 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    private async Task OpenRecentFileFromToolbarAsync(RecentReaderFileEntry? entry)
+    {
+        if (entry == null || string.IsNullOrWhiteSpace(entry.FilePath))
+            return;
+
+        string fullPath;
+        try
+        {
+            fullPath = Path.GetFullPath(entry.FilePath);
+        }
+        catch
+        {
+            fullPath = entry.FilePath;
+        }
+
+        if (!File.Exists(fullPath))
+        {
+            ReloadRecentFilesList();
+            return;
+        }
+
+        if (!BookFormatParser.IsReaderExtensionSupported(fullPath, out _) ||
+            !BookFormatParser.ValidateReaderFileSignature(fullPath, out _))
+        {
+            ReloadRecentFilesList();
+            return;
+        }
+
+        var currentTab = ActiveTab;
+        if (currentTab != null)
+        {
+            string currentFullPath;
+            try
+            {
+                currentFullPath = Path.GetFullPath(currentTab.Book.FilePath);
+            }
+            catch
+            {
+                currentFullPath = currentTab.Book.FilePath;
+            }
+
+            if (string.Equals(currentFullPath, fullPath, StringComparison.OrdinalIgnoreCase))
+            {
+                await currentTab.SaveProgressAsync();
+                _settingsService.UpsertRecentFile(currentTab.Book, currentTab.Annotations);
+                ReloadRecentFilesList();
+                FocusViewportRequested?.Invoke();
+                return;
+            }
+
+            // 1. Save current progress/position of the active document
+            await currentTab.SaveProgressAsync();
+
+            // Check if the selected file is also open in another background tab
+            var duplicateOtherTab = OpenTabs.FirstOrDefault(t =>
+                !ReferenceEquals(t, currentTab) &&
+                string.Equals(Path.GetFullPath(t.Book.FilePath), fullPath, StringComparison.OrdinalIgnoreCase));
+
+            if (duplicateOtherTab != null)
+            {
+                await duplicateOtherTab.SaveProgressAsync();
+                OpenTabs.Remove(duplicateOtherTab);
+                duplicateOtherTab.Dispose();
+            }
+
+            // 2. Prepare book record for the newly selected recent file
+            var latestRecent = _settingsService.GetRecentEntry(fullPath) ?? entry;
+            int startPage = Math.Max(1, latestRecent.CurrentPage);
+            var book = BookFormatParser.CreateStandaloneBookRecord(fullPath, 0, startPage);
+            book.Title = string.IsNullOrWhiteSpace(latestRecent.Title)
+                ? Path.GetFileNameWithoutExtension(fullPath)
+                : latestRecent.Title;
+            book.Author = string.IsNullOrWhiteSpace(latestRecent.Author)
+                ? "Невідомий автор"
+                : latestRecent.Author;
+            book.PageCount = Math.Max(1, latestRecent.TotalPages);
+            book.ReadingProgress = latestRecent.ReadingProgress;
+
+            var newTab = new DocumentTabViewModel(
+                book,
+                _settingsService,
+                initialZoomMode: currentTab.ZoomMode,
+                initialViewMode: currentTab.ViewMode);
+
+            newTab.UpdateViewportSize(_lastKnownViewportWidth, _lastKnownViewportHeight);
+
+            int currentIndex = OpenTabs.IndexOf(currentTab);
+            bool wasSecondary = ReferenceEquals(SecondarySplitTab, currentTab);
+
+            if (currentIndex >= 0 && currentIndex < OpenTabs.Count)
+            {
+                OpenTabs.Insert(currentIndex, newTab);
+            }
+            else
+            {
+                OpenTabs.Add(newTab);
+            }
+
+            ActiveTab = newTab;
+            if (wasSecondary || SecondarySplitTab == null)
+            {
+                SecondarySplitTab = newTab;
+            }
+
+            // 3. Unload and dispose resources of the previous document (PDFium / EPUB / FB2)
+            OpenTabs.Remove(currentTab);
+            currentTab.Dispose();
+
+            // 4. Load the selected file into the active viewer and move it to the 1st position in RecentFiles
+            await newTab.InitializeDocumentAsync();
+            _settingsService.UpsertRecentFile(newTab.Book, newTab.Annotations);
+            ReloadRecentFilesList();
+            SaveSessionState();
+            FocusViewportRequested?.Invoke();
+            return;
+        }
+
+        await OpenLaunchRequestAsync(new ReaderLaunchRequest
+        {
+            FilePath = fullPath,
+            InitialPage = entry.CurrentPage
+        });
+    }
+
+    [RelayCommand]
+    private void TogglePinTab(DocumentTabViewModel? tab)
+    {
+        var target = tab ?? ActiveTab;
+        if (target == null || !OpenTabs.Contains(target))
+            return;
+
+        target.IsPinned = !target.IsPinned;
+
+        // Keep pinned tabs grouped on the left while preserving relative order
+        var currentActive = ActiveTab;
+        var sorted = OpenTabs
+            .OrderByDescending(t => t.IsPinned)
+            .ToList();
+
+        for (int i = 0; i < sorted.Count; i++)
+        {
+            int oldIdx = OpenTabs.IndexOf(sorted[i]);
+            if (oldIdx >= 0 && oldIdx != i)
+            {
+                OpenTabs.Move(oldIdx, i);
+            }
+        }
+
+        if (currentActive != null && !ReferenceEquals(ActiveTab, currentActive))
+        {
+            ActiveTab = currentActive;
+        }
+
+        SaveSessionState();
+    }
+
+    [RelayCommand]
     private void RemoveRecentFile(RecentReaderFileEntry? entry)
     {
         if (entry == null) return;
@@ -2130,6 +2543,7 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
         }
 
         ReloadRecentFilesList();
+        SaveSessionState();
         FocusViewportRequested?.Invoke();
     }
 
@@ -2142,7 +2556,7 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
         ActiveTab = keepTab;
         SecondarySplitTab = keepTab;
 
-        foreach (var tab in OpenTabs.Where(t => t != keepTab).ToList())
+        foreach (var tab in OpenTabs.Where(t => t != keepTab && !t.IsPinned).ToList())
         {
             await tab.SaveProgressAsync();
             OpenTabs.Remove(tab);
@@ -2152,22 +2566,41 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
         keepTab.SyncToolbarAndSidebarState();
         await keepTab.ResumeFromBackgroundAsync();
         ReloadRecentFilesList();
+        SaveSessionState();
         FocusViewportRequested?.Invoke();
     }
 
     [RelayCommand]
     private async Task CloseAllTabsAsync()
     {
-        foreach (var tab in OpenTabs.ToList())
+        var pinnedTabs = OpenTabs.Where(t => t.IsPinned).ToList();
+        var tabsToClose = pinnedTabs.Count > 0 && pinnedTabs.Count < OpenTabs.Count
+            ? OpenTabs.Where(t => !t.IsPinned).ToList()
+            : OpenTabs.ToList();
+
+        foreach (var tab in tabsToClose)
         {
             await tab.SaveProgressAsync();
+            OpenTabs.Remove(tab);
             tab.Dispose();
         }
 
-        OpenTabs.Clear();
-        ActiveTab = null;
-        SecondarySplitTab = null;
+        if (OpenTabs.Count > 0)
+        {
+            ActiveTab = OpenTabs[0];
+            SecondarySplitTab = ActiveTab;
+            ActiveTab.SyncToolbarAndSidebarState();
+            await ActiveTab.ResumeFromBackgroundAsync();
+            FocusViewportRequested?.Invoke();
+        }
+        else
+        {
+            ActiveTab = null;
+            SecondarySplitTab = null;
+        }
+
         ReloadRecentFilesList();
+        SaveSessionState();
     }
 
     [RelayCommand]
@@ -2180,8 +2613,18 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
             "ContinuousVertical" => ReaderViewMode.ContinuousVertical,
             _ => ReaderViewMode.SinglePage
         };
-        _settingsService.Current.LastReaderViewMode = ActiveTab.ViewMode.ToString();
+        string modeKey = ActiveTab.ViewMode.ToString();
+        _settingsService.Current.LastReaderViewMode = modeKey;
         _settingsService.Save();
+
+        if (!IsSplitViewEnabled)
+        {
+            var match = ViewModePresets.FirstOrDefault(v => v.Key.Equals(modeKey, StringComparison.OrdinalIgnoreCase));
+            if (match != null && match != SelectedViewModePreset)
+            {
+                SyncSelectedViewModePreset(match);
+            }
+        }
     }
 
     [RelayCommand]
@@ -2198,9 +2641,26 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
     private void ToggleSplitView()
     {
         IsSplitViewEnabled = !IsSplitViewEnabled;
-        if (IsSplitViewEnabled && SecondarySplitTab == null)
+        if (IsSplitViewEnabled)
         {
-            SecondarySplitTab = OpenTabs.LastOrDefault() ?? ActiveTab;
+            if (SecondarySplitTab == null)
+            {
+                SecondarySplitTab = OpenTabs.LastOrDefault() ?? ActiveTab;
+            }
+            var splitOpt = ViewModePresets.FirstOrDefault(v => v.Key.Equals("SplitView", StringComparison.OrdinalIgnoreCase));
+            if (splitOpt != null && splitOpt != SelectedViewModePreset)
+            {
+                SyncSelectedViewModePreset(splitOpt);
+            }
+        }
+        else
+        {
+            string modeKey = ActiveTab?.ViewMode.ToString() ?? "ContinuousVertical";
+            var match = ViewModePresets.FirstOrDefault(v => v.Key.Equals(modeKey, StringComparison.OrdinalIgnoreCase)) ?? ViewModePresets[0];
+            if (match != SelectedViewModePreset)
+            {
+                SyncSelectedViewModePreset(match);
+            }
         }
     }
 
@@ -2361,32 +2821,44 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
         string conciseQuote = BuildConciseBookmarkText(ActiveTab.CurrentPage, selectedSnippet, pageSample);
         _lastSelectedTextForBookmark = string.Empty;
 
-        var ann = new AnnotationRecord
+        var existing = ActiveTab.Annotations.FirstOrDefault(a => a.IsBookmark && a.PageNumber == ActiveTab.CurrentPage);
+        if (existing != null)
         {
-            BookId = ActiveTab.CatalogBookId ?? 0,
-            PageNumber = ActiveTab.CurrentPage,
-            ScrollOffset = ActiveTab.SavedScrollOffset,
-            QuoteText = conciseQuote,
-            CommentText = "🔖 Закладка",
-            HighlightColor = "#38BDF8",
-            IsBookmark = true,
-            CreatedAt = DateTime.Now
-        };
-
-        if (ActiveTab.IsCatalogLinked && File.Exists(ActiveTab.CatalogDbPath))
+            existing.QuoteText = conciseQuote;
+            existing.HighlightColor = SelectedHighlightColor;
+        }
+        else
         {
-            try
+            var ann = new AnnotationRecord
             {
-                var db = new LibraryDatabase(ActiveTab.CatalogDbPath);
-                ann.Id = await db.AddAnnotationAsync(ann);
-            }
-            catch { }
+                BookId = 0,
+                PageNumber = ActiveTab.CurrentPage,
+                ScrollOffset = ActiveTab.SavedScrollOffset,
+                QuoteText = conciseQuote,
+                CommentText = "🔖 Закладка",
+                HighlightColor = SelectedHighlightColor,
+                IsBookmark = true,
+                CreatedAt = DateTime.Now
+            };
+            ActiveTab.Annotations.Add(ann);
         }
 
-        ActiveTab.Annotations.Add(ann);
-        IsAnnotationsVisible = true;
+        ActiveTab.NotifyBookmarkChanged();
         FocusViewportRequested?.Invoke();
         await ActiveTab.SaveProgressAsync();
+    }
+
+    [RelayCommand]
+    private async Task DeleteBookmarkAsync(AnnotationRecord? ann)
+    {
+        if (ActiveTab == null) return;
+        var target = ann ?? ActiveTab.CurrentPageBookmark;
+        if (target != null)
+        {
+            ActiveTab.Annotations.Remove(target);
+            ActiveTab.NotifyBookmarkChanged();
+            await ActiveTab.SaveProgressAsync();
+        }
     }
 
     [RelayCommand]
@@ -2410,7 +2882,7 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
 
         var ann = new AnnotationRecord
         {
-            BookId = ActiveTab.CatalogBookId ?? 0,
+            BookId = 0,
             PageNumber = ActiveTab.CurrentPage,
             ScrollOffset = ActiveTab.SavedScrollOffset,
             QuoteText = quote,
@@ -2419,16 +2891,6 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
             IsBookmark = false,
             CreatedAt = DateTime.Now
         };
-
-        if (ActiveTab.IsCatalogLinked && File.Exists(ActiveTab.CatalogDbPath))
-        {
-            try
-            {
-                var db = new LibraryDatabase(ActiveTab.CatalogDbPath);
-                ann.Id = await db.AddAnnotationAsync(ann);
-            }
-            catch { }
-        }
 
         ActiveTab.Annotations.Add(ann);
         NewQuoteInput = string.Empty;
@@ -2441,16 +2903,8 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
     private async Task DeleteAnnotationAsync(AnnotationRecord? ann)
     {
         if (ann == null || ActiveTab == null) return;
-        if (ann.Id > 0 && ActiveTab.IsCatalogLinked && File.Exists(ActiveTab.CatalogDbPath))
-        {
-            try
-            {
-                var db = new LibraryDatabase(ActiveTab.CatalogDbPath);
-                await db.DeleteAnnotationAsync(ann.Id);
-            }
-            catch { }
-        }
         ActiveTab.Annotations.Remove(ann);
+        ActiveTab.NotifyBookmarkChanged();
         await ActiveTab.SaveProgressAsync();
     }
 
@@ -2514,8 +2968,12 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
     {
         foreach (var tab in OpenTabs)
         {
-            await tab.SaveProgressAsync();
+            if (tab.IsDocumentInitialized)
+            {
+                await tab.SaveProgressAsync();
+            }
         }
+        SaveSessionState();
     }
 
     public void Dispose()
@@ -2523,6 +2981,8 @@ public partial class ReaderViewModel : ObservableObject, IDisposable
         if (_disposed) return;
         _disposed = true;
         ReaderThemeService.ThemeChanged -= OnGlobalThemeChanged;
+        ReaderLocalizationService.LanguageChanged -= OnGlobalLanguageChanged;
+        _settingsService.RecentFilesChanged -= OnSettingsRecentFilesChanged;
         foreach (var tab in OpenTabs)
         {
             tab.Dispose();
