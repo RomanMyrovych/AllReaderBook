@@ -9,8 +9,6 @@ namespace BookHub.Reader.Services;
 public sealed class ReaderLaunchRequest
 {
     public string? FilePath { get; set; }
-    public long? BookId { get; set; }
-    public string? DbPath { get; set; }
     public int? InitialPage { get; set; }
 
     public bool HasFile => !string.IsNullOrWhiteSpace(FilePath) && File.Exists(FilePath);
@@ -23,7 +21,7 @@ public static class ReaderCliParser
     /// Parses CLI arguments:
     /// 1) No arguments -> empty ReaderLaunchRequest (opens Start Screen with Recent 10 files &amp; Drag-and-Drop)
     /// 2) AllReaderBook.exe "path\to\book.pdf"
-    /// 3) AllReaderBook.exe --book-id 147 --db-path "E:\...\bookhub.db" "path\to\book.pdf"
+    /// 3) AllReaderBook.exe --page 15 "path\to\book.pdf"
     /// </summary>
     public static ReaderLaunchRequest Parse(string[] args)
     {
@@ -37,27 +35,14 @@ public static class ReaderCliParser
             if (string.IsNullOrEmpty(arg))
                 continue;
 
-            if (arg.Equals("--book-id", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-            {
-                if (long.TryParse(args[++i], out long id) && id > 0)
-                    req.BookId = id;
-            }
-            else if (arg.StartsWith("--book-id=", StringComparison.OrdinalIgnoreCase))
-            {
-                if (long.TryParse(arg["--book-id=".Length..], out long id) && id > 0)
-                    req.BookId = id;
-            }
-            else if (arg.Equals("--db-path", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
-            {
-                req.DbPath = args[++i].Trim('"', ' ');
-            }
-            else if (arg.StartsWith("--db-path=", StringComparison.OrdinalIgnoreCase))
-            {
-                req.DbPath = arg["--db-path=".Length..].Trim('"', ' ');
-            }
-            else if (arg.Equals("--page", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+            if (arg.Equals("--page", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
             {
                 if (int.TryParse(args[++i], out int page) && page > 0)
+                    req.InitialPage = page;
+            }
+            else if (arg.StartsWith("--page=", StringComparison.OrdinalIgnoreCase))
+            {
+                if (int.TryParse(arg["--page=".Length..], out int page) && page > 0)
                     req.InitialPage = page;
             }
             else if (!arg.StartsWith('-'))

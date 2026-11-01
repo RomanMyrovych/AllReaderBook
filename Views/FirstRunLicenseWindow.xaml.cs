@@ -1,7 +1,6 @@
 using System.IO;
 using System.Text;
 using System.Windows;
-using BookHub.Core.Data;
 using BookHub.Core.Services;
 
 namespace BookHub.Reader.Views;
@@ -47,7 +46,7 @@ public partial class FirstRunLicenseWindow : Window
     private void LoadLicenseText()
     {
         var sb = new StringBuilder();
-        string licensePath = LibraryDatabase.ResolveResourceFile("LICENSE");
+        string licensePath = ReaderSettingsService.ResolveResourceFile("LICENSE");
 
         if (File.Exists(licensePath))
         {
@@ -62,7 +61,7 @@ public partial class FirstRunLicenseWindow : Window
         sb.AppendLine("----------------------------------------------------------------------------");
         sb.AppendLine("ПОВІДОМЛЕННЯ ПРО ГАРАНТІЇ (AS IS) ТА ВІДСУТНІСТЬ ЗБОРУ ДАНИХ:");
         sb.AppendLine("----------------------------------------------------------------------------");
-        sb.AppendLine("1. Реліз AllReaderBook v0.9.0-beta (Public Beta) надається «ЯК Є» («AS IS»),");
+        sb.AppendLine("1. Реліз AllReaderBook v0.9.02-beta (Public Beta) надається «ЯК Є» («AS IS»),");
         sb.AppendLine("   без жодних явних чи непрямих гарантій придатності або безпомилкової роботи.");
         sb.AppendLine("2. Програма працює на 100% автономно (офлайн): не збирає персональні дані,");
         sb.AppendLine("   не відправляє телеметрію та не виконує прихованих мережевих запитів.");
@@ -96,5 +95,19 @@ public partial class FirstRunLicenseWindow : Window
     {
         IsAccepted = false;
         Application.Current.Shutdown();
+    }
+
+    private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = e.Uri.AbsoluteUri,
+                UseShellExecute = true
+            });
+            e.Handled = true;
+        }
+        catch { }
     }
 }
