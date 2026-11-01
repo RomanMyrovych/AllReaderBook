@@ -1200,6 +1200,90 @@
                                                         CornerRadius="2"
                                                         Visibility="Collapsed" />
                                             </Canvas>
+                                            <!-- Sticky-Note Bookmark Overlay on Continuous Page -->
+                                            <Border HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Margin="0,15,15,0"
+                                                    Width="{Binding DataContext.StickyBookmarkWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                    MinHeight="46"
+                                                    CornerRadius="6"
+                                                    Visibility="{Binding Bookmark, Converter={StaticResource NullToVisibilityConverter}}"
+                                                    BorderThickness="2"
+                                                    BorderBrush="{Binding Bookmark.StickyBorderColorHex}"
+                                                    Background="{Binding Bookmark.StickyBgColorHex}"
+                                                    Padding="10,6"
+                                                    Cursor="Hand"
+                                                    ToolTip="Закладка на цій сторінці">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="{Binding Bookmark.QuoteText}"
+                                                               FontStyle="Italic"
+                                                               FontWeight="SemiBold"
+                                                               FontSize="12"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                                               TextWrapping="Wrap"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center" />
+                                                    <Button Grid.Column="1"
+                                                            Content="✕"
+                                                            Command="{Binding DataContext.DeleteBookmarkCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding Bookmark}"
+                                                            Style="{StaticResource ReaderIconButtonStyle}"
+                                                            Width="20" Height="20"
+                                                            FontSize="11"
+                                                            Padding="0"
+                                                            Margin="6,0,0,0"
+                                                            Opacity="0.8"
+                                                            ToolTip="Видалити закладку" />
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- Sticky-Note Bookmark Overlay on Continuous Page -->
+                                            <Border HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Margin="0,15,15,0"
+                                                    Width="{Binding DataContext.StickyBookmarkWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                    MinHeight="46"
+                                                    CornerRadius="6"
+                                                    Visibility="{Binding Bookmark, Converter={StaticResource NullToVisibilityConverter}}"
+                                                    BorderThickness="2"
+                                                    BorderBrush="{Binding Bookmark.StickyBorderColorHex}"
+                                                    Background="{Binding Bookmark.StickyBgColorHex}"
+                                                    Padding="10,6"
+                                                    Cursor="Hand"
+                                                    ToolTip="Закладка на цій сторінці">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="{Binding Bookmark.QuoteText}"
+                                                               FontStyle="Italic"
+                                                               FontWeight="SemiBold"
+                                                               FontSize="12"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                                               TextWrapping="Wrap"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center" />
+                                                    <Button Grid.Column="1"
+                                                            Content="✕"
+                                                            Command="{Binding DataContext.DeleteBookmarkCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding Bookmark}"
+                                                            Style="{StaticResource ReaderIconButtonStyle}"
+                                                            Width="20" Height="20"
+                                                            FontSize="11"
+                                                            Padding="0"
+                                                            Margin="6,0,0,0"
+                                                            Opacity="0.8"
+                                                            ToolTip="Видалити закладку" />
+                                                </Grid>
+                                            </Border>
+
                                             <TextBlock Text="{Binding PageNumber, StringFormat='Сторінка {0}'}"
                                                        HorizontalAlignment="Right"
                                                        VerticalAlignment="Bottom"
