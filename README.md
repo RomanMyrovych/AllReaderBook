@@ -1,77 +1,19 @@
-# 📚 ReaderHub v3.62 & 📖 AllReaderBook v0.9.02 (Public Beta)
+# 📖 AllReaderBook v0.9.02 (Public Beta)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: Windows x64](https://img.shields.io/badge/Platform-Windows%20x64-0078D6.svg)](#системні-вимоги)
-[![Runtime: .NET 9](https://img.shields.io/badge/.NET-9.0%20WPF-512BD4.svg)](#збірка-з-вихідного-коду-та-пакування)
-[![ReaderHub: v3.62](https://img.shields.io/badge/ReaderHub-v3.62-purple.svg)](#варіанти-поставки-дистрибутивів)
-[![AllReaderBook: v0.9.02-beta](https://img.shields.io/badge/AllReaderBook-v0.9.02--beta-orange.svg)](#що-нового-у-v362--v0902-beta)
+[![Runtime: .NET 9](https://img.shields.io/badge/.NET-9.0%20WPF-512BD4.svg)](#збірка-з-вихідного-коду)
+[![Package: Winget](https://img.shields.io/badge/Winget-RomanMyrovych.AllReaderBook-blue.svg)](#встановлення-через-winget)
 
-**ReaderHub v3.62** — високопродуктивний настільний менеджер і каталогізатор електронних бібліотек із миттєвим повнотекстовим пошуком SQLite FTS5, розумною організацією локальної бібліотеки `\libofbooks` та опційним надшвидким автономним рідером **AllReaderBook v0.9.02 (Public Beta)** для Windows (`win-x64`).
-
----
-
-## 📦 Варіанти поставки дистрибутивів
-
-### ReaderHub v3.62 (2 варіанти поставки):
-1. **Інсталятор `ReaderHub_Setup_v3.62_x64.exe`** (`Publish\Installer\ReaderHub_Setup_v3.62_x64.exe`):
-   - Встановлює **ReaderHub v3.62** (`ReaderHub.exe`).
-   - Включає **AllReaderBook v0.9.02-beta** (`AllReaderBook.exe`) як опційний компонент у майстрі встановлення (прапорець `True` за замовчуванням; користувач може зняти відмітку, якщо бажає встановити лише `ReaderHub`).
-2. **Портативна збірка `ReaderHub_Portable_v3.62`** (`Publish\ReaderHub_Portable_v3.62` та архів `ReaderHub_Portable_v3.62_x64.zip`):
-   - Повністю портативний пакет **ReaderHub v3.62** разом із автономним рідером **AllReaderBook v0.9.02-beta** та попередньо створеною папкою керованої бібліотеки `\libofbooks`.
-
-### AllReaderBook v0.9.02-beta (3 варіанти поставки):
-1. **У складі інсталятора `ReaderHub_Setup_v3.62_x64.exe`** (опційний компонент, увімкнений за замовчуванням).
-2. **Окремий автономний інсталятор `AllReaderBook_Setup_v0.9.02-beta_x64.exe`** (`Publish\Installer\AllReaderBook_Setup_v0.9.02-beta_x64.exe`).
-3. **Окрема портативна версія `AllReaderBook_Portable_v0.9.02-beta`** (`Publish\AllReaderBook_Portable_v0.9.02-beta` та архів `AllReaderBook_Portable_v0.9.02-beta_x64.zip`).
+**AllReaderBook v0.9.02-beta** — надшвидкий, легкий і 100% офлайн-рідер для Windows (`win-x64`). Побудований на базі .NET 9 WPF та нативного рушія Google PDFium із нульовою телеметрією. Підтримує перегляд PDF, EPUB, FB2, MOBI, DOCX, CBZ, DJVU з миттєвим рендерингом сторінок.
 
 ---
 
-## 🆕 Що нового у ReaderHub v3.62 та AllReaderBook v0.9.02-beta
+## 📦 Варіанти дистрибутивів
 
-- **🏷 Ребрендинг у ReaderHub v3.62 та оновлена фірмова іконка:**
-  - Проєкт каталогізатора перейменовано на **ReaderHub** (`ReaderHub.exe`, версія `3.62`), уніфіковано фірмову іконку `AllReaderBook.ico` для всіх вікон та інсталяторів.
-- **📁 Автоматичне формування керованої бібліотеки `\libofbooks` у налаштуваннях ReaderHub:**
-  - У вікні «Налаштування» додано опцію **«Бажаєте створити бібліотеку?»** (*«Після увімкнення цієї опції копії усіх знайдених книг будуть скопійовані або перенесені (в залежності від стану відповідного перемикача) до папки \libofbooks»*).
-  - За замовчуванням папка `\libofbooks` створюється поруч із файлом `ReaderHub.exe`.
-  - Підтримується вибір режиму консолідації (**Скопіювати** або **Перенести** знайдені книги до `\libofbooks`) та можливість вказати власний шлях на будь-якому диску для створення папки `libofbooks`.
-- **🌓 Розумний Нічний та Сепія режим для PDF (*Smart Dark & Sepia Mode*):**
-  - Адаптивна хрома-чутлива перекольоровка (`< 0.8 мс` на сторінку через LUT-таблицю) перефарбовує сліпучо-білий фон PDF-сторінок і темний текст під активну тему (*Obsidian Dark*, *Nord Dark*, *OLED Black*, *Warm Sepia*, *Nord Light*), зберігаючи природні кольори ілюстрацій та фотографій.
-- **🎨 Уніфікований ергономічний інтерфейс читання в AllReaderBook та вбудованому рідері ReaderHub:**
-  - Випадаючий список режимів перегляду (`Безперервний`, `1 Стор.`, `Розворот`, `◫ Split-View`, за замовчуванням — `Безперервний`).
-  - Контрастне акцентне підсвічування активної вкладки документа, активного пункту змісту (`TOC`) у темних і світлих темах, а також кнопок-перемикачів `📑 Зміст`, `🌓 PDF-тема`, `🖊 Виділити` та `📝 Нотатки`.
-  - Випадаюча кнопка «Відкрити ▼» (`SplitButton`) зі списком останніх відкритих книг і перевіркою доступності файлів, розширене поле пошуку `Ctrl+F` на весь вільний простір тулбара та стабільний 3-секційний статус-бар без смикання при швидкій прокрутці.
+1. **Автономний інсталятор:** `AllReaderBook_Setup_v0.9.02-beta_x64.exe` (Inno Setup, підтримка тихих ключів `/VERYSILENT /NORESTART`, асоціація типів файлів).
+2. **Портативна збірка:** `AllReaderBook_Portable_v0.9.02-beta_win-x64.zip` (повністю автономний запуск без встановлення в систему).
 
----
-
-## ⚡ Ключові переваги та архітектура продуктивності
-
-- **Миттєвий старт (ReadyToRun AOT):** Попередня компіляція критичного коду та нативного рушія **Google PDFium** забезпечує відкриття важких технічних PDF-книг (600–1500+ сторінок) за десятки мілісекунд.
-- **Фіксований кільцевий пул пам'яті (`PdfSurfacePool`):** Одночасно у відеопам'яті/RAM утримується мінімальна кількість активних растрових поверхонь. Фонові вкладки автоматично вивантажують растри з оперативної пам'яті, зберігаючи точну сторінку та піксельне зміщення скролу.
-- **Миттєвий повнотекстовий пошук SQLite FTS5:** Індексація десятків тисяч книг у локальній базі `bookhub.db` (WAL-режим) з пошуком за назвою, автором, тегами, колекціями та вмістом за `< 10 мс`.
-- **Інструменти дослідника та інтеграція з Obsidian:** Посимвольне виділення тексту, пошук по документу з підсвічуванням збігів (`Ctrl+F`), кольорові маркери, нотатки та експорт конспектів у формат Markdown (`.md`) для **Obsidian**.
-- **5 адаптивних колірних тем та 10 мов інтерфейсу:** *Obsidian Dark*, *Nord Dark*, *OLED Black*, *Warm Sepia*, *Nord Light*; миттєве перемикання між 10 мовами (*UK, EN, PL, DE, ES, FR, IT, PT, JA, ZH*).
-
----
-
-## 🛠 Збірка з вихідного коду та пакування
-
+### Встановлення через Windows Package Manager (Winget):
 ```powershell
-# 1. Компіляція рішення у конфігурації Release
-dotnet build .\BookHub.sln -c Release
-
-# 2. Створення автономної Portable-збірки AllReaderBook v0.9.02-beta
-powershell -ExecutionPolicy Bypass -File .\Publish-Reader-Portable.ps1
-
-# 3. Створення автономної Portable-збірки ReaderHub v3.62 (разом з AllReaderBook)
-powershell -ExecutionPolicy Bypass -File .\Publish-Portable.ps1
-
-# 4. Створення обох інсталяторів (ReaderHub_Setup_v3.62_x64.exe та AllReaderBook_Setup_v0.9.02-beta_x64.exe)
-powershell -ExecutionPolicy Bypass -File .\Build-Installer.ps1
-```
-
----
-
-## 📜 Ліцензія
-
-Вихідний код **ReaderHub** та **AllReaderBook** розповсюджується на умовах ліцензії **MIT License** — Copyright (c) 2026 **Roman Myrovych** (див. файл [LICENSE](LICENSE)).
-Повний перелік сторонніх компонентів та тексти їхніх ліцензій наведено у файлі [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt).
+winget install RomanMyrovych.AllReaderBook
